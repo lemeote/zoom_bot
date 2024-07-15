@@ -1,0 +1,28 @@
+{
+  "name": "zoom_bot",
+  "version": "0.0.0",
+  "description": "This is P-DEV's Zoom App",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "keywords": [
+    "ZOOM",
+    "APP"
+  ],
+  "author": "Star",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "zoomus": "^0.1.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21"
+  }
+}
