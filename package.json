@@ -21,7 +21,9 @@
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
     "ngrok": "^5.0.0-beta.2",
+    "open": "^10.1.0",
     "path": "^0.12.7",
+    "puppeteer": "^22.13.0",
     "zoomus": "^0.1.4"
   },
   "devDependencies": {
