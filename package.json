@@ -4,7 +4,8 @@
   "description": "This is P-DEV's Zoom App",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test"
+    "test": "npm run test",
+    "start": "node index.js"
   },
   "keywords": [
     "ZOOM",
@@ -19,6 +20,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
+    "ngrok": "^5.0.0-beta.2",
     "path": "^0.12.7",
     "zoomus": "^0.1.4"
   },
