@@ -1,147 +1,101 @@
-const express = require("express");
-const bodyParser = require("body-parser");
 const axios = require("axios");
-const qs = require("querystring");
+const express = require("express");
+
+const clientId = "9VTOyytLShSLxyh4jD5kcQ";
+const clientSecret = "YUPU5aHmFnFaXFyMeaj6qgQpN1Gh6Roj";
+const redirectUri = "http://localhost:3000/callback";
+
+const meetingId = "87803487933";
+
+const joinMeetingUrl =
+  "https://api.zoom.us/v2/meetings/87803487933/registrants";
+
+const startRecordingUrl = `https://api.zoom.us/v2/meetings/87803487933/recording/registrants`;
 
 const app = express();
-app.use(bodyParser.json());
-
-const port = 3000;
-
-// Your Zoom OAuth credentials
-const CLIENT_ID = process.env.ZOOM_CLIENT_ID;
-const CLIENT_SECRET = process.env.ZOOM_CLIENT_SECRET;
-const REDIRECT_URI = process.env.ZOOM_REDIRECT_URI;
-
-// Global variables to store access token and refresh token
-let accessToken = "";
-let refreshToken = "";
-
-// Endpoint to start OAuth flow
-app.get("/authorize", (req, res) => {
-  const authorizeUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
-  res.redirect(authorizeUrl);
+const server = app.listen(3000, () => {
+  console.log("Server listening on port 3000");
 });
 
-// OAuth callback endpoint
-app.get("/oauth", async (req, res) => {
-  const code = req.query.code;
+app.get("/callback", async (req, res) => {
+  const { code } = req.query;
 
   try {
     const tokenResponse = await axios.post(
       "https://zoom.us/oauth/token",
-      qs.stringify({
-        grant_type: "authorization_code",
-        code: code,
-        redirect_uri: REDIRECT_URI,
-      }),
+      null,
       {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${CLIENT_ID}:${CLIENT_SECRET}`
-          ).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
+        params: {
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: "https://23db-83-234-227-51.ngrok-free.app/callback",
+        },
+        auth: {
+          username: "TTtGnVM7RAC3BVDfTVuVoQ",
+          password: "wD66oeLtWeESQhdMbVIiTEcuJO61Sgy7",
         },
       }
     );
 
-    accessToken = tokenResponse.data.access_token;
-    refreshToken = tokenResponse.data.refresh_token;
+    const accessToken = tokenResponse.data.access_token;
+    console.log("Access token:", accessToken);
 
-    res.send("OAuth flow completed. You can now use the bot.");
+    await joinMeeting(accessToken);
+    await startRecording(accessToken);
+
+    res.send("Bot joined the meeting and started recording successfully.");
   } catch (error) {
-    console.error("Error during OAuth callback:", error);
-    res.status(500).send("OAuth callback error");
+    console.error("Error:", error);
+    res.send("Failed to join the meeting and start recording.");
+  } finally {
+    server.close();
   }
 });
 
-// Endpoint to handle webhook events
-app.post("/webhook", async (req, res) => {
-  const event = req.body.event;
-  const meetingId = req.body.payload.object.id;
-
-  if (event === "meeting.started") {
-    try {
-      await joinMeeting(meetingId);
-      res.status(200).send("Bot joined and recording started");
-    } catch (error) {
-      console.error("Error joining meeting:", error);
-      res.status(500).send("Error joining meeting");
-    }
-  } else {
-    res.status(200).send("Event received");
-  }
-});
-
-// Function to join the Zoom meeting
-const joinMeeting = async (meetingId) => {
-  const meetingDetails = await axios.get(
-    `https://api.zoom.us/v2/meetings/${meetingId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
+(async () => {
+  const authorizationUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=TTtGnVM7RAC3BVDfTVuVoQ&redirect_uri=${encodeURIComponent(
+    "https://23db-83-234-227-51.ngrok-free.app/callback"
+  )}`;
+  console.log(
+    `Please open the following URL in your browser and proceed with the authorization process:\n${authorizationUrl}`
   );
+})();
 
-  const meetingPassword = meetingDetails.data.password;
-
-  // Logic to join the meeting using Zoom Web SDK or any other method
-
-  // After joining the meeting, start recording
-  await startRecording(meetingId);
-};
-
-// Function to start recording
-const startRecording = async (meetingId) => {
-  const zoomAPIUrl = `https://api.zoom.us/v2/meetings/${meetingId}/recordings`;
-
+async function joinMeeting(accessToken) {
   try {
-    const response = await axios.post(
-      zoomAPIUrl,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    console.log("Recording started:", response.data);
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
+    const body = {
+      email: "bot@example.com",
+      first_name: "Bot",
+      last_name: "Example",
+    };
+    const response = await axios.post(joinMeetingUrl, body, {
+      headers,
+    });
+    console.log("red tro...", response.data);
+    const joinUrl = response.data.join_url;
+    console.log("Bot joined the meeting. Join URL:", joinUrl);
+    return joinUrl;
   } catch (error) {
-    console.error("Error starting recording:", error);
+    console.error("Failed to join the meeting.", error.message);
   }
-};
+}
 
-// Refresh token function
-const refreshTokenFunction = async () => {
+async function startRecording(accessToken) {
   try {
-    const tokenResponse = await axios.post(
-      "https://zoom.us/oauth/token",
-      qs.stringify({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-      }),
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${CLIENT_ID}:${CLIENT_SECRET}`
-          ).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-
-    accessToken = tokenResponse.data.access_token;
-    refreshToken = tokenResponse.data.refresh_token;
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
+    const body = {
+      action: "start",
+    };
+    await axios.post(startRecordingUrl, body, { headers });
+    console.log("Recording started successfully.");
   } catch (error) {
-    console.error("Error refreshing token:", error);
+    console.error("Failed to start recording.", error.message);
   }
-};
-
-// Periodically refresh the access token
-setInterval(refreshTokenFunction, 60 * 60 * 1000); // Refresh every hour
-
-app.listen(port, () => {
-  console.log(`Server is listening on port ${port}`);
-});
+}
