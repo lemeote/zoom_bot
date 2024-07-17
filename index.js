@@ -10,7 +10,7 @@ const meetingId = "87803487933";
 const joinMeetingUrl =
   "https://api.zoom.us/v2/meetings/87803487933/registrants";
 
-const startRecordingUrl = `https://api.zoom.us/v2/meetings/87803487933/record`;
+const startRecordingUrl = `https://api.zoom.us/v2/meetings/87803487933/recording/registrants`;
 
 const app = express();
 const server = app.listen(3000, () => {
