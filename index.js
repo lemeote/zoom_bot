@@ -67,14 +67,11 @@ async function joinMeeting(accessToken) {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     };
-    const body = {
-      email: "bot@example.com",
-      first_name: "Bot",
-      last_name: "Example",
-    };
-    const response = await axios.post(joinMeetingUrl, body, {
-      headers,
-    });
+    const response = await axios({
+      method: post,
+      url: joinMeetingUrl,
+      headers: headers
+    })
     console.log("red tro...", response.data);
     const joinUrl = response.data.join_url;
     console.log("Bot joined the meeting. Join URL:", joinUrl);
