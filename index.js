@@ -64,107 +64,107 @@ app.get("/callback", async (req, res) => {
 });
 
 app.post("/webhook", async (req, res) => {
-  // const event = req.body.event;
-  // const meetingId = req.body.payload.object.id;
+  const event = req.body.event;
+  const meetingId = req.body.payload.object.id;
 
-  if (req.body.event === "endpoint.url_validation") {
-    const hashForValidate = crypto
-      .createHmac("sha256", "klSh5qzsTtyNDKXTlBxBSQ")
-      .update(req.body.payload.plainToken)
-      .digest("hex");
+  // if (req.body.event === "endpoint.url_validation") {
+  //   const hashForValidate = crypto
+  //     .createHmac("sha256", "klSh5qzsTtyNDKXTlBxBSQ")
+  //     .update(req.body.payload.plainToken)
+  //     .digest("hex");
 
-    response = {
-      message: {
-        plainToken: req.body.payload.plainToken,
-        encryptedToken: hashForValidate,
-      },
-      status: 200,
-    };
+  //   response = {
+  //     message: {
+  //       plainToken: req.body.payload.plainToken,
+  //       encryptedToken: hashForValidate,
+  //     },
+  //     status: 200,
+  //   };
 
-    console.log(response.message);
+  //   console.log(response.message);
 
-    res.status(response.status);
-    res.json(response.message);
-  } else {
-    response = {
-      message: "Authorized request to Zoom Webhook sample.",
-      status: 200,
-    };
+  //   res.status(response.status);
+  //   res.json(response.message);
+  // } else {
+  //   response = {
+  //     message: "Authorized request to Zoom Webhook sample.",
+  //     status: 200,
+  //   };
 
-    console.log(response.message);
+  //   console.log(response.message);
 
-    res.status(response.status);
-    res.json(response);
+  //   res.status(response.status);
+  //   res.json(response);
+  // }
+
+  if (event === "meeting.started") {
+    try {
+      const signature = generateSignature(clientId, clientSecret, meetingId, 0);
+
+      const joinUrl = `https://zoom.us/wc/join/${meetingId}?tk=${signature}`;
+      console.log("Join URL:", joinUrl);
+
+      axios
+        .post("https://zoombot.staging.sumaiina.com/join-meeting", {
+          joinUrl,
+        })
+        .then((response) => {
+          console.log("Bot join URL sent successfully:", response.data);
+        })
+        .catch((error) => {
+          console.error("Failed to send bot join URL:", error);
+        });
+    } catch (error) {
+      console.error("Failed to process meeting start event:", error);
+    }
+
+    try {
+      const response = await axios.post(
+        "https://api.zoom.us/v2/users/me/meetings",
+        {
+          topic: "Meeting with Recording",
+          type: 1,
+          settings: {
+            auto_recording: "cloud",
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Meeting created successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+    }
   }
 
-  // if (event === "meeting.started") {
-  //   try {
-  //     const signature = generateSignature(clientId, clientSecret, meetingId, 0);
+  if (event === "meeting.ended") {
+    try {
+      const stopRecordingResponse = await axios.patch(
+        `https://api.zoom.us/v2/meetings/${meetingId}/recordings/status`,
+        {
+          action: "stop",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-  //     const joinUrl = `https://zoom.us/wc/join/${meetingId}?tk=${signature}`;
-  //     console.log("Join URL:", joinUrl);
-
-  //     axios
-  //       .post("https://zoombot.staging.sumaiina.com/join-meeting", {
-  //         joinUrl,
-  //       })
-  //       .then((response) => {
-  //         console.log("Bot join URL sent successfully:", response.data);
-  //       })
-  //       .catch((error) => {
-  //         console.error("Failed to send bot join URL:", error);
-  //       });
-  //   } catch (error) {
-  //     console.error("Failed to process meeting start event:", error);
-  //   }
-
-  //   try {
-  //     const response = await axios.post(
-  //       "https://api.zoom.us/v2/users/me/meetings",
-  //       {
-  //         topic: "Meeting with Recording",
-  //         type: 1,
-  //         settings: {
-  //           auto_recording: "cloud",
-  //         },
-  //       },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${accessToken}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       }
-  //     );
-  //     console.log("Meeting created successfully:", response.data);
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error("Failed to start recording:", error);
-  //   }
-  // }
-
-  // if (event === "meeting.ended") {
-  //   try {
-  //     const stopRecordingResponse = await axios.patch(
-  //       `https://api.zoom.us/v2/meetings/${meetingId}/recordings/status`,
-  //       {
-  //         action: "stop",
-  //       },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${accessToken}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       }
-  //     );
-
-  //     console.log(
-  //       "Recording stopped successfully:",
-  //       stopRecordingResponse.data
-  //     );
-  //   } catch (error) {
-  //     console.error("Failed to stop recording:", error);
-  //   }
-  // }
+      console.log(
+        "Recording stopped successfully:",
+        stopRecordingResponse.data
+      );
+    } catch (error) {
+      console.error("Failed to stop recording:", error);
+    }
+  }
 
   res.status(200).send("Event received");
 });
