@@ -41,7 +41,7 @@ app.get("/callback", async (req, res) => {
       querystring.stringify({
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: redirectUri,
+        redirect_uri: "https://zoombot.staging.sumaiina.com/callback",
       }),
       {
         headers: {
@@ -197,7 +197,7 @@ app.post("/join-meeting", async (req, res) => {
   }
 });
 
-const port = 3001;
+const port = 3000;
 app.listen(port, () => {
   console.log(`Server runnion on port ${port}`);
 });
