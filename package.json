@@ -1,16 +1,34 @@
 {
-  "name": "my-zoom-bot",
-  "version": "1.0.0",
+  "name": "zoom_bot",
+  "version": "0.0.0",
+  "description": "This is P-DEV's Zoom App",
   "main": "index.js",
   "scripts": {
-    "start": "vercel dev"
+    "test": "npm run test",
+    "start": "node index.js"
   },
+  "keywords": [
+    "ZOOM",
+    "APP"
+  ],
+  "author": "Star",
+  "license": "ISC",
   "dependencies": {
-    "axios": "^0.21.1",
-    "body-parser": "^1.19.0",
+    "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
     "crypto": "^1.0.1",
-    "express": "^4.17.1",
-    "puppeteer": "^10.2.0",
-    "querystring": "^0.2.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "fs": "^0.0.1-security",
+    "ngrok": "^5.0.0-beta.2",
+    "nodemon": "^3.1.4",
+    "open": "^10.1.0",
+    "path": "^0.12.7",
+    "puppeteer": "^22.13.0",
+    "querystring": "^0.2.1",
+    "zoomus": "^0.1.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21"
   }
 }
