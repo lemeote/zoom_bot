@@ -197,7 +197,7 @@ app.post("/join-meeting", async (req, res) => {
   }
 });
 
-const port = 3000;
+const port = 3001;
 app.listen(port, () => {
   console.log(`Server runnion on port ${port}`);
 });
