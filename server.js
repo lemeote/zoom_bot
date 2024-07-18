@@ -1,17 +1,17 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const axios = require("axios");
-const puppeteer = require("puppeteer");
-const querystring = require("querystring");
-const crypto = require("crypto");
+import express from "express";
+import { json, urlencoded } from "body-parser";
+import { post, patch } from "axios";
+import { launch } from "puppeteer";
+import { stringify } from "querystring";
+import { createHmac } from "crypto";
 const app = express();
 require("dotenv").config();
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(json());
+app.use(urlencoded({ extended: true }));
 
-const clientId = "TTtGnVM7RAC3BVDfTVuVoQ";
-const clientSecret = "wD66oeLtWeESQhdMbVIiTEcuJO61Sgy7";
+const clientId = "14R6A1yuTdnlhqYvb6G0w";
+const clientSecret = "UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b";
 const redirectUri = "https://23db-83-234-227-51.ngrok-free.app/callback";
 
 let accessToken = null;
@@ -21,8 +21,7 @@ function generateSignature(apiKey, apiSecret, meetingNumber, role) {
   const msg = Buffer.from(apiKey + meetingNumber + timestamp + role).toString(
     "base64"
   );
-  const hash = crypto
-    .createHmac("sha256", apiSecret)
+  const hash = createHmac("sha256", apiSecret)
     .update(msg)
     .digest("base64");
   const signature = Buffer.from(
@@ -35,9 +34,9 @@ app.get("/callback", async (req, res) => {
   const code = req.query.code;
 
   try {
-    const tokenResponse = await axios.post(
+    const tokenResponse = await post(
       "https://zoom.us/oauth/token",
-      querystring.stringify({
+      stringify({
         grant_type: "authorization_code",
         code: code,
         redirect_uri: redirectUri,
@@ -68,8 +67,7 @@ app.post("/webhook", async (req, res) => {
   const meetingId = req.body.payload.object.id;
 
   if(req.body.event === 'endpoint.url_validation') {
-      const hashForValidate = crypto
-        .createHmac("sha256", "hzQH0YrJQGGyWqEZMNHu5Q")
+      const hashForValidate = createHmac("sha256", "hzQH0YrJQGGyWqEZMNHu5Q")
         .update(req.body.payload.plainToken)
         .digest("hex");
 
@@ -102,8 +100,7 @@ app.post("/webhook", async (req, res) => {
 
       console.log("Join URL:", joinUrl);
 
-      axios
-        .post("http://localhost:3001/join-meeting", { joinUrl })
+      post("http://localhost:3001/join-meeting", { joinUrl })
         .then((response) => {
           console.log("Bot join URL sent successfully:", response.data);
         })
@@ -115,7 +112,7 @@ app.post("/webhook", async (req, res) => {
     }
 
     try {
-      const response = await axios.post(
+      const response = await post(
         "https://api.zoom.us/v2/users/me/meetings",
         {
           topic: "Meeting with Recording",
@@ -140,7 +137,7 @@ app.post("/webhook", async (req, res) => {
 
   if (event === "meeting.ended") {
     try {
-      const stopRecordingResponse = await axios.patch(
+      const stopRecordingResponse = await patch(
         `https://api.zoom.us/v2/meetings/${meetingId}/recordings/status`,
         {
           action: "stop",
@@ -171,13 +168,13 @@ app.listen(port, () => {
 });
 
 const botApp = express();
-botApp.use(bodyParser.json());
+botApp.use(json());
 
 botApp.post("/join-meeting", async (req, res) => {
   const { joinUrl } = req.body;
 
   try {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await launch({ headless: true });
     const page = await browser.newPage();
     await page.goto(joinUrl, { waitUntil: "networkidle2" });
 
