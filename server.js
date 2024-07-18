@@ -5,6 +5,7 @@ const puppeteer = require("puppeteer");
 const querystring = require("querystring");
 const crypto = require("crypto");
 const app = express();
+require("dotenv").config();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -65,7 +66,6 @@ app.get("/callback", async (req, res) => {
 app.post("/webhook", async (req, res) => {
   const event = req.body.event;
   const meetingId = req.body.payload.object.id;
-  console.log("meetingId:", meetingId);
 
   if(req.body.event === 'endpoint.url_validation') {
       const hashForValidate = crypto
@@ -94,22 +94,71 @@ app.post("/webhook", async (req, res) => {
       res.json(response)
     }
 
-  if (event === "meeting.started" && accessToken) {
+  if (event === "meeting.started") {
     try {
-      const meetingDetails = await axios.get(
-        `https://api.zoom.us/v2/meetings/${meetingId}`,
+      const signature = generateSignature(clientId, clientSecret, meetingId, 0);
+
+      const joinUrl = `https://zoom.us/wc/join/87803487933?tk=${signature}`;
+
+      console.log("Join URL:", joinUrl);
+
+      axios
+        .post("http://localhost:3001/join-meeting", { joinUrl })
+        .then((response) => {
+          console.log("Bot join URL sent successfully:", response.data);
+        })
+        .catch((error) => {
+          console.error("Failed to send bot join URL:", error);
+        });
+    } catch (error) {
+      console.error("Failed to process meeting start event:", error);
+    }
+
+    try {
+      const response = await axios.post(
+        "https://api.zoom.us/v2/users/me/meetings",
         {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          topic: "Meeting with Recording",
+          type: 1,
+          settings: {
+            auto_recording: "cloud",
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Meeting created successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+    }
+  }
+
+  if (event === "meeting.ended") {
+    try {
+      const stopRecordingResponse = await axios.patch(
+        `https://api.zoom.us/v2/meetings/${meetingId}/recordings/status`,
+        {
+          action: "stop",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      const joinUrl = meetingDetails.data.join_url;
-      console.log("Meeting join URL:", joinUrl);
-
-      await axios.post("http://localhost:3001/join-meeting", { joinUrl });
-      console.log("Bot join URL sent successfully");
+      console.log(
+        "Recording stopped successfully:",
+        stopRecordingResponse.data
+      );
     } catch (error) {
-      console.error("Failed to process meeting start event:", error);
+      console.error("Failed to stop recording:", error);
     }
   }
 
@@ -149,5 +198,4 @@ botApp.post("/join-meeting", async (req, res) => {
 const botPort = 3001;
 botApp.listen(botPort, () => {
   console.log(`Puppeteer server running on port ${botPort}`);
-
 });
