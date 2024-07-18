@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const clientId = "14R6A1yuTdnlhqYvb6G0w";
 const clientSecret = "UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b";
-const redirectUri = "zoombot.sumaiina.com/callback";
+const redirectUri = "https://zoombot.staging.sumaiina.com/callback";
 
 let accessToken = null;
 
@@ -102,11 +102,11 @@ app.post("/webhook", async (req, res) => {
     try {
       const signature = generateSignature(clientId, clientSecret, meetingId, 0);
 
-      const joinUrl = `https://zoom.us/wc/join/${meetingId}?tk=${accessToken}`;
+      const joinUrl = `https://zoom.us/wc/join/${meetingId}?tk=${signature}`;
       console.log("Join URL:", joinUrl);
 
       axios
-        .post("zoombot.sumaiina.com/join-meeting", {
+        .post("https://zoombot.staging.sumaiina.com/join-meeting", {
           joinUrl,
         })
         .then((response) => {
