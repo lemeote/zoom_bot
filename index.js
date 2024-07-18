@@ -70,7 +70,7 @@ app.post("/webhook", async (req, res) => {
 
   if (req.body.event === "endpoint.url_validation") {
     const hashForValidate = crypto
-      .createHmac("sha256", "1sLKIChnRO2bPHXQSNH-6A")
+      .createHmac("sha256", "klSh5qzsTtyNDKXTlBxBSQ")
       .update(req.body.payload.plainToken)
       .digest("hex");
 
