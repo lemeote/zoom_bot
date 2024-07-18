@@ -12,7 +12,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const clientId = "14R6A1yuTdnlhqYvb6G0w";
 const clientSecret = "UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b";
-const redirectUri = "https://zoombot.staging.sumaiina.com/callback";
 
 let accessToken = null;
 
@@ -46,7 +45,7 @@ app.get("/callback", async (req, res) => {
       {
         headers: {
           Authorization: `Basic ${Buffer.from(
-            `${clientId}:${clientSecret}`
+            `14R6A1yuTdnlhqYvb6G0w:UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b`
           ).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
@@ -197,7 +196,7 @@ app.post("/join-meeting", async (req, res) => {
   }
 });
 
-const port = 3001;
+const port = 3000;
 app.listen(port, () => {
   console.log(`Server runnion on port ${port}`);
 });
