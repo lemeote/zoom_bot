@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const axios = require("axios");
+require("dotenv").config();
 
 let accessToken = null; // Move this to a shared module if needed
 
