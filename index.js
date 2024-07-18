@@ -1,98 +1,203 @@
-const axios = require("axios");
 const express = require("express");
-
-const clientId = "9VTOyytLShSLxyh4jD5kcQ";
-const clientSecret = "YUPU5aHmFnFaXFyMeaj6qgQpN1Gh6Roj";
-const redirectUri = "http://localhost:3000/callback";
-
-const meetingId = "87803487933";
-
-const joinMeetingUrl =
-  "https://api.zoom.us/v2/meetings/87803487933/registrants";
-
-const startRecordingUrl = `https://api.zoom.us/v2/meetings/87803487933/recording/registrants`;
-
+const bodyParser = require("body-parser");
+const axios = require("axios");
+const puppeteer = require("puppeteer");
+const querystring = require("querystring");
+const crypto = require("crypto");
 const app = express();
-const server = app.listen(3000, () => {
-  console.log("Server listening on port 3000");
-});
+require("dotenv").config();
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+const clientId = "14R6A1yuTdnlhqYvb6G0w";
+const clientSecret = "UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b";
+const redirectUri = "https://2e45-77-247-126-189.ngrok-free.app/callback";
+
+let accessToken = null;
+
+function generateSignature(apiKey, apiSecret, meetingNumber, role) {
+  const timestamp = new Date().getTime() - 30000;
+  const msg = Buffer.from(apiKey + meetingNumber + timestamp + role).toString(
+    "base64"
+  );
+  const hash = crypto
+    .createHmac("sha256", apiSecret)
+    .update(msg)
+    .digest("base64");
+  const signature = Buffer.from(
+    `${apiKey}.${meetingNumber}.${timestamp}.${role}.${hash}`
+  ).toString("base64");
+  console.log("this is the signature", signature);
+  return signature;
+}
 
 app.get("/callback", async (req, res) => {
-  const { code } = req.query;
+  const code = req.query.code;
 
   try {
     const tokenResponse = await axios.post(
       "https://zoom.us/oauth/token",
-      null,
+      querystring.stringify({
+        grant_type: "authorization_code",
+        code: code,
+        redirect_uri: redirectUri,
+      }),
       {
-        params: {
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: "https://23db-83-234-227-51.ngrok-free.app/callback",
-        },
-        auth: {
-          username: "TTtGnVM7RAC3BVDfTVuVoQ",
-          password: "wD66oeLtWeESQhdMbVIiTEcuJO61Sgy7",
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${clientId}:${clientSecret}`
+          ).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       }
     );
 
-    const accessToken = tokenResponse.data.access_token;
-    console.log("Access token:", accessToken);
-
-    await joinMeeting(accessToken);
-    await startRecording(accessToken);
-
-    res.send("Bot joined the meeting and started recording successfully.");
+    accessToken = tokenResponse.data.access_token;
+    res.json({ message: "Authentication successful" });
   } catch (error) {
-    console.error("Error:", error);
-    res.send("Failed to join the meeting and start recording.");
-  } finally {
-    server.close();
+    console.error(
+      "Failed to exchange authorization code for access token:",
+      error
+    );
+    res.status(500).send("Failed to authenticate");
   }
 });
 
-(async () => {
-  const authorizationUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=TTtGnVM7RAC3BVDfTVuVoQ&redirect_uri=${encodeURIComponent(
-    "https://23db-83-234-227-51.ngrok-free.app/callback"
-  )}`;
-  console.log(
-    `Please open the following URL in your browser and proceed with the authorization process:\n${authorizationUrl}`
-  );
-})();
+app.post("/webhook", async (req, res) => {
+  const event = req.body.event;
+  const meetingId = req.body.payload.object.id;
 
-async function joinMeeting(accessToken) {
-  try {
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    };
-    const response = await axios({
-      method: post,
-      url: joinMeetingUrl,
-      headers: headers
-    })
-    console.log("red tro...", response.data);
-    const joinUrl = response.data.join_url;
-    console.log("Bot joined the meeting. Join URL:", joinUrl);
-    return joinUrl;
-  } catch (error) {
-    console.error("Failed to join the meeting.", error.message);
-  }
-}
+  if (req.body.event === "endpoint.url_validation") {
+    const hashForValidate = crypto
+      .createHmac("sha256", "1sLKIChnRO2bPHXQSNH-6A")
+      .update(req.body.payload.plainToken)
+      .digest("hex");
 
-async function startRecording(accessToken) {
-  try {
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
+    response = {
+      message: {
+        plainToken: req.body.payload.plainToken,
+        encryptedToken: hashForValidate,
+      },
+      status: 200,
     };
-    const body = {
-      action: "start",
+
+    console.log(response.message);
+
+    res.status(response.status);
+    res.json(response.message);
+  } else {
+    response = {
+      message: "Authorized request to Zoom Webhook sample.",
+      status: 200,
     };
-    await axios.post(startRecordingUrl, body, { headers });
-    console.log("Recording started successfully.");
-  } catch (error) {
-    console.error("Failed to start recording.", error.message);
+
+    console.log(response.message);
+
+    res.status(response.status);
+    res.json(response);
   }
-}
+
+  if (event === "meeting.started") {
+    try {
+      const signature = generateSignature(clientId, clientSecret, meetingId, 0);
+
+      const joinUrl = `https://zoom.us/wc/join/${meetingId}?tk=${accessToken}`;
+      console.log("Join URL:", joinUrl);
+
+      axios
+        .post("https://2e45-77-247-126-189.ngrok-free.app/join-meeting", {
+          joinUrl,
+        })
+        .then((response) => {
+          console.log("Bot join URL sent successfully:", response.data);
+        })
+        .catch((error) => {
+          console.error("Failed to send bot join URL:", error);
+        });
+    } catch (error) {
+      console.error("Failed to process meeting start event:", error);
+    }
+
+    try {
+      const response = await axios.post(
+        "https://api.zoom.us/v2/users/me/meetings",
+        {
+          topic: "Meeting with Recording",
+          type: 1,
+          settings: {
+            auto_recording: "cloud",
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Meeting created successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+    }
+  }
+
+  if (event === "meeting.ended") {
+    try {
+      const stopRecordingResponse = await axios.patch(
+        `https://api.zoom.us/v2/meetings/${meetingId}/recordings/status`,
+        {
+          action: "stop",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log(
+        "Recording stopped successfully:",
+        stopRecordingResponse.data
+      );
+    } catch (error) {
+      console.error("Failed to stop recording:", error);
+    }
+  }
+
+  res.status(200).send("Event received");
+});
+
+app.post("/join-meeting", async (req, res) => {
+  const { joinUrl } = req.body;
+
+  try {
+    const browser = await puppeteer.launch({
+      headless: false,
+      args: ["--disable-setuid-sandbox"],
+      ignoreHTTPSErrors: true,
+    });
+    const page = await browser.newPage();
+    await page.setViewport({
+      width: 1920,
+      height: 1080,
+    });
+    await page.goto(joinUrl, { waitUntil: "networkidle2" });
+
+    await page.waitForSelector("#wc_agree1", { visible: true, timeout: 30000 });
+    await page.click("#wc_agree1");
+
+    console.log("Bot joined the meeting successfully.");
+    res.status(200).send("Bot joined the meeting successfully.");
+  } catch (error) {
+    console.error("Failed to join the meeting:", error);
+    res.status(500).send("Failed to join the meeting.");
+  }
+});
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Server runnion on port ${port}`);
+});
