@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const clientId = "14R6A1yuTdnlhqYvb6G0w";
 const clientSecret = "UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b";
-const redirectUri = "https://2e45-77-247-126-189.ngrok-free.app/callback";
+const redirectUri = "zoombot.sumaiina.com/callback";
 
 let accessToken = null;
 
@@ -106,7 +106,7 @@ app.post("/webhook", async (req, res) => {
       console.log("Join URL:", joinUrl);
 
       axios
-        .post("https://2e45-77-247-126-189.ngrok-free.app/join-meeting", {
+        .post("zoombot.sumaiina.com/join-meeting", {
           joinUrl,
         })
         .then((response) => {
