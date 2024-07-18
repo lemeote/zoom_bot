@@ -1,4 +1,5 @@
 const puppeteer = require("puppeteer");
+require("dotenv").config();
 
 module.exports = async (req, res) => {
   const { joinUrl } = req.body;

@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const clientId = process.env.CLIENT_ID;
 const redirectUri = process.env.REDIRECT_URI;
 
