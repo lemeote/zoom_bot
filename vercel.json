@@ -1,16 +1,10 @@
-
 {
-	"version":2,
-	"builds":[
-		{
-			"src":"*.js",
-			"use":"@vercel/node"
-		}
-	],
-	"routes":[
-		{
-			"src":"/(.*)",
-			"dest":"/"
-		}
-	]
+  "version": 2,
+  "builds": [{ "src": "api/**/*.js", "use": "@vercel/node" }],
+  "routes": [
+    { "src": "/api/join-meeting", "dest": "/api/join-meeting.js" },
+    { "src": "/api/webhook", "dest": "/api/webhook.js" },
+    { "src": "/api/callback", "dest": "/api/callback.js" },
+    { "src": "/api/oauth", "dest": "/api/oauth.js" }
+  ]
 }
