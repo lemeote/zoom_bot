@@ -101,7 +101,7 @@ app.post("/webhook", async (req, res) => {
     try {
       const signature = generateSignature(clientId, clientSecret, meetingId, 0);
 
-      const joinUrl = `https://us02web.zoom.us/j/${meetingId}?pwd=${signature}`;
+      const joinUrl = `https://app.zoom.us/wc/${meetingId}/join?fromPWA=1&${signature}`;
 
       axios
         .post("https://zoombot.staging.sumaiina.com/join-meeting", {
@@ -173,7 +173,7 @@ app.post("/join-meeting", async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       args: ["--disable-setuid-sandbox"],
       ignoreHTTPSErrors: true,
     });
