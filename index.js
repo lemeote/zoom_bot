@@ -101,8 +101,7 @@ app.post("/webhook", async (req, res) => {
     try {
       const signature = generateSignature(clientId, clientSecret, meetingId, 0);
 
-      const joinUrl = `https://zoom.us/wc/join/${meetingId}?tk=${signature}`;
-      console.log("Join URL:", joinUrl);
+      const joinUrl = `https://us02web.zoom.us/j/${meetingId}?pwd=${signature}`;
 
       axios
         .post("https://zoombot.staging.sumaiina.com/join-meeting", {
@@ -184,9 +183,19 @@ app.post("/join-meeting", async (req, res) => {
       height: 1080,
     });
     await page.goto(joinUrl, { waitUntil: "networkidle2" });
+    await page.waitForSelector("input#input-for-pwd", { timeout: 30000 });
+    await page.type("input#input-for-pwd", "311862");
 
-    await page.waitForSelector("#wc_agree1", { visible: true, timeout: 30000 });
-    await page.click("#wc_agree1");
+    await page.waitForSelector("input#input-for-name", { timeout: 30000 });
+    await page.type("input#input-for-name", "BotN");
+
+    await page.waitForXPath('//*[@id="root"]/div/div[1]/div/div[2]/button');
+    const [button] = await page.$x(
+      '//*[@id="root"]/div/div[1]/div/div[2]/button'
+    );
+    if (button) {
+      await button.click();
+    }
 
     console.log("Bot joined the meeting successfully.");
     res.status(200).send("Bot joined the meeting successfully.");
