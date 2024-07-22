@@ -12,7 +12,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const clientId = "14R6A1yuTdnlhqYvb6G0w";
 const clientSecret = "UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b";
-const redirectUri = "https://zoombot.staging.sumaiina.com/callback";
 
 let accessToken = null;
 
@@ -46,7 +45,7 @@ app.get("/callback", async (req, res) => {
       {
         headers: {
           Authorization: `Basic ${Buffer.from(
-            `${clientId}:${clientSecret}`
+            `14R6A1yuTdnlhqYvb6G0w:UuOMuUCf4ohP7Z6MnxRYJjaW0hFzss7b`
           ).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
@@ -68,42 +67,41 @@ app.post("/webhook", async (req, res) => {
   const event = req.body.event;
   const meetingId = req.body.payload.object.id;
 
-  if (req.body.event === "endpoint.url_validation") {
-    const hashForValidate = crypto
-      .createHmac("sha256", "klSh5qzsTtyNDKXTlBxBSQ")
-      .update(req.body.payload.plainToken)
-      .digest("hex");
+  // if (req.body.event === "endpoint.url_validation") {
+  //   const hashForValidate = crypto
+  //     .createHmac("sha256", "klSh5qzsTtyNDKXTlBxBSQ")
+  //     .update(req.body.payload.plainToken)
+  //     .digest("hex");
 
-    response = {
-      message: {
-        plainToken: req.body.payload.plainToken,
-        encryptedToken: hashForValidate,
-      },
-      status: 200,
-    };
+  //   response = {
+  //     message: {
+  //       plainToken: req.body.payload.plainToken,
+  //       encryptedToken: hashForValidate,
+  //     },
+  //     status: 200,
+  //   };
 
-    console.log(response.message);
+  //   console.log(response.message);
 
-    res.status(response.status);
-    res.json(response.message);
-  } else {
-    response = {
-      message: "Authorized request to Zoom Webhook sample.",
-      status: 200,
-    };
+  //   res.status(response.status);
+  //   res.json(response.message);
+  // } else {
+  //   response = {
+  //     message: "Authorized request to Zoom Webhook sample.",
+  //     status: 200,
+  //   };
 
-    console.log(response.message);
+  //   console.log(response.message);
 
-    res.status(response.status);
-    res.json(response);
-  }
+  //   res.status(response.status);
+  //   res.json(response);
+  // }
 
   if (event === "meeting.started") {
     try {
       const signature = generateSignature(clientId, clientSecret, meetingId, 0);
 
-      const joinUrl = `https://zoom.us/wc/join/${meetingId}?tk=${signature}`;
-      console.log("Join URL:", joinUrl);
+      const joinUrl = `https://app.zoom.us/wc/${meetingId}/join?fromPWA=1&${signature}`;
 
       axios
         .post("https://zoombot.staging.sumaiina.com/join-meeting", {
@@ -175,7 +173,7 @@ app.post("/join-meeting", async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       args: ["--disable-setuid-sandbox"],
       ignoreHTTPSErrors: true,
     });
@@ -185,9 +183,19 @@ app.post("/join-meeting", async (req, res) => {
       height: 1080,
     });
     await page.goto(joinUrl, { waitUntil: "networkidle2" });
+    await page.waitForSelector("input#input-for-pwd", { timeout: 30000 });
+    await page.type("input#input-for-pwd", "311862");
 
-    await page.waitForSelector("#wc_agree1", { visible: true, timeout: 30000 });
-    await page.click("#wc_agree1");
+    await page.waitForSelector("input#input-for-name", { timeout: 30000 });
+    await page.type("input#input-for-name", "BotN");
+
+    await page.waitForXPath('//*[@id="root"]/div/div[1]/div/div[2]/button');
+    const [button] = await page.$x(
+      '//*[@id="root"]/div/div[1]/div/div[2]/button'
+    );
+    if (button) {
+      await button.click();
+    }
 
     console.log("Bot joined the meeting successfully.");
     res.status(200).send("Bot joined the meeting successfully.");
@@ -197,7 +205,7 @@ app.post("/join-meeting", async (req, res) => {
   }
 });
 
-const port = 3000;
+const port = 3001;
 app.listen(port, () => {
   console.log(`Server runnion on port ${port}`);
 });
